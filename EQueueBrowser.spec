@@ -3,12 +3,13 @@
 from PyInstaller.utils.hooks import collect_all
 
 qt_binaries, qt_datas, qt_hiddenimports = collect_all('PySide6.QtWebEngineWidgets')
+config_datas = [('config.json', '.')]
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=qt_binaries,
-    datas=qt_datas,
+    datas=qt_datas + config_datas,
     hiddenimports=qt_hiddenimports,
     hookspath=[],
     runtime_hooks=[],
