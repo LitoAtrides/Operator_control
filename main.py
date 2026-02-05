@@ -3,8 +3,9 @@ from __future__ import annotations
 
 import logging
 import sys
+from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, QRect
+from PySide6.QtCore import Qt, QUrl, QRect, QStandardPaths
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
@@ -17,8 +18,24 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from PySide6.QtWebEngineCore import QWebEngineProfile
+
 from config_loader import AppConfig, ConfigError, load_config
 from url_builder import UrlBuilderError, build_mode_url
+
+
+def _setup_webengine_storage() -> None:
+    profile = QWebEngineProfile.defaultProfile()
+    base_path = Path(
+        QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
+        or Path(sys.executable).resolve().parent
+    )
+    storage_path = base_path / "EQueueBrowser" / "webengine"
+    storage_path.mkdir(parents=True, exist_ok=True)
+    profile.setPersistentStoragePath(str(storage_path))
+    profile.setCachePath(str(storage_path / "cache"))
+    profile.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
+    logging.info("WebEngine storage: %s", storage_path)
 
 
 # `initial_geometry` определяет точные координаты/размер окна.
@@ -98,6 +115,7 @@ def main() -> None:
         sys.exit(1)
 
     app = QApplication(sys.argv)
+    _setup_webengine_storage()
     screen = app.primaryScreen()
     window_geometry: QRect | None = None
     if screen is not None:
