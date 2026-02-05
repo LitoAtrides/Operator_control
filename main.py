@@ -4,11 +4,12 @@ from __future__ import annotations
 import logging
 import sys
 
-from PySide6.QtCore import Qt, QUrl, QSize
+from PySide6.QtCore import Qt, QUrl, QRect
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
     QLabel,
+    QHBoxLayout,
     QMainWindow,
     QSizePolicy,
     QScrollArea,
@@ -20,24 +21,25 @@ from config_loader import AppConfig, ConfigError, load_config
 from url_builder import UrlBuilderError, build_mode_url
 
 
+# `initial_geometry` определяет точные координаты/размер окна.
 class OperatorWindow(QMainWindow):
     """Основное окно приложения, устанавливающее нужную разметку."""
 
-    def __init__(self, config: AppConfig, initial_size: QSize | None = None) -> None:
+    def __init__(self, config: AppConfig, initial_geometry: QRect | None = None) -> None:
         super().__init__()
         self.config = config
         self.setWindowTitle("Электронная очередь")
-        if initial_size is None:
+        if initial_geometry is None:
             self.resize(1280, 720)
         else:
-            self.resize(initial_size)
+            self.setGeometry(initial_geometry)
         self._setup_ui()
 
     def _setup_ui(self) -> None:
         central = QWidget()
         layout = QVBoxLayout(central)
         layout.setSpacing(12)
-        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setContentsMargins(0, 0, 0, 0)
 
         if self.config.mode == "orc":
             layout.addWidget(self._build_orc_panel())
@@ -50,10 +52,11 @@ class OperatorWindow(QMainWindow):
     def _build_orc_panel(self) -> QWidget:
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
+        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
         container = QWidget()
-        container_layout = QVBoxLayout(container)
+        container_layout = QHBoxLayout(container)
         container_layout.setSpacing(12)
         container_layout.setContentsMargins(0, 0, 0, 0)
 
@@ -66,6 +69,7 @@ class OperatorWindow(QMainWindow):
                 build_mode_url(self.config, "orc", orc_number)
             )
             browser.setMinimumHeight(360)
+            browser.setMinimumWidth(640)
             container_layout.addWidget(browser)
 
         container_layout.addStretch(1)
@@ -95,17 +99,21 @@ def main() -> None:
 
     app = QApplication(sys.argv)
     screen = app.primaryScreen()
-    window_size: QSize | None = None
+    window_geometry: QRect | None = None
     if screen is not None:
         available_geometry = screen.availableGeometry()
         if available_geometry.isValid():
-            window_size = available_geometry.size()
+            window_geometry = available_geometry
         else:
-            logging.warning("Не удалось получить доступную геометрию экрана, используется размер по умолчанию")
+            logging.warning(
+                "Не удалось получить доступную геометрию экрана, используется размер по умолчанию"
+            )
     else:
-        logging.warning("Не удалось определить основной экран, используется размер по умолчанию")
+        logging.warning(
+            "Не удалось определить основной экран, используется размер по умолчанию"
+        )
 
-    window = OperatorWindow(config, window_size)
+    window = OperatorWindow(config, window_geometry)
     window.show()
     sys.exit(app.exec())
 
