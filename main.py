@@ -4,7 +4,7 @@ from __future__ import annotations
 import logging
 import sys
 
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QUrl, QSize
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
@@ -23,11 +23,14 @@ from url_builder import UrlBuilderError, build_mode_url
 class OperatorWindow(QMainWindow):
     """Основное окно приложения, устанавливающее нужную разметку."""
 
-    def __init__(self, config: AppConfig) -> None:
+    def __init__(self, config: AppConfig, initial_size: QSize | None = None) -> None:
         super().__init__()
         self.config = config
         self.setWindowTitle("Электронная очередь")
-        self.resize(1280, 720)
+        if initial_size is None:
+            self.resize(1280, 720)
+        else:
+            self.resize(initial_size)
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -91,7 +94,18 @@ def main() -> None:
         sys.exit(1)
 
     app = QApplication(sys.argv)
-    window = OperatorWindow(config)
+    screen = app.primaryScreen()
+    window_size: QSize | None = None
+    if screen is not None:
+        available_geometry = screen.availableGeometry()
+        if available_geometry.isValid():
+            window_size = available_geometry.size()
+        else:
+            logging.warning("Не удалось получить доступную геометрию экрана, используется размер по умолчанию")
+    else:
+        logging.warning("Не удалось определить основной экран, используется размер по умолчанию")
+
+    window = OperatorWindow(config, window_size)
     window.show()
     sys.exit(app.exec())
 
