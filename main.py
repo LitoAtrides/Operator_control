@@ -42,16 +42,17 @@ class OperatorWindow(QMainWindow):
         layout.setContentsMargins(0, 0, 0, 0)
 
         if self.config.mode == "orc":
-            layout.addWidget(self._build_orc_panel())
+            layout.addWidget(self._build_orc_panel(), 1)
         else:
             browser = self._create_browser(self._mode_url())
-            layout.addWidget(browser)
+            layout.addWidget(browser, 1)
 
         self.setCentralWidget(central)
 
     def _build_orc_panel(self) -> QWidget:
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
+        scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
         scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
 
@@ -70,9 +71,8 @@ class OperatorWindow(QMainWindow):
             )
             browser.setMinimumHeight(360)
             browser.setMinimumWidth(640)
-            container_layout.addWidget(browser)
+            container_layout.addWidget(browser, 1)
 
-        container_layout.addStretch(1)
         scroll_area.setWidget(container)
         return scroll_area
 
