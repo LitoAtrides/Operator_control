@@ -1,0 +1,10 @@
+{
+  "connection": {
+    "protocol": "http",
+    "ip": "192.168.105.124",
+    "port": 8090
+  },
+  "mode": "orc",
+  "segment": "1",
+  "orcNumbers": [1, 2]
+}
