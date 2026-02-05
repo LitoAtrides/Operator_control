@@ -2,14 +2,14 @@
 
 from PyInstaller.utils.hooks import collect_all
 
-qt_webengine = collect_all('PySide6.QtWebEngineWidgets')
+qt_binaries, qt_datas, qt_hiddenimports = collect_all('PySide6.QtWebEngineWidgets')
 
 a = Analysis(
     ['main.py'],
     pathex=[],
-    binaries=qt_webengine['binaries'],
-    datas=qt_webengine['datas'],
-    hiddenimports=qt_webengine['hiddenimports'],
+    binaries=qt_binaries,
+    datas=qt_datas,
+    hiddenimports=qt_hiddenimports,
     hookspath=[],
     runtime_hooks=[],
     excludes=[],
