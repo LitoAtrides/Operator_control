@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl, QRect, QStandardPaths
-from PySide6.QtWebEngineWidgets import QWebEngineView
+from PySide6.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
     QLabel,
@@ -24,8 +24,12 @@ from config_loader import AppConfig, ConfigError, load_config
 from url_builder import UrlBuilderError, build_mode_url
 
 
-def _setup_webengine_storage() -> None:
-    profile = QWebEngineProfile.defaultProfile()
+_webengine_profile: QWebEngineProfile | None = None
+
+
+def _setup_webengine_storage(app: QApplication) -> None:
+    global _webengine_profile
+    profile = QWebEngineProfile("EQueueBrowser", app)
     base_path = Path(
         QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
         or Path(sys.executable).resolve().parent
@@ -35,6 +39,7 @@ def _setup_webengine_storage() -> None:
     profile.setPersistentStoragePath(str(storage_path))
     profile.setCachePath(str(storage_path / "cache"))
     profile.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
+    _webengine_profile = profile
     logging.info("WebEngine storage: %s", storage_path)
 
 
@@ -94,7 +99,9 @@ class OperatorWindow(QMainWindow):
         return scroll_area
 
     def _create_browser(self, address: str) -> QWebEngineView:
+        profile = _webengine_profile or QWebEngineProfile.defaultProfile()
         view = QWebEngineView()
+        view.setPage(QWebEnginePage(profile, view))
         view.setUrl(QUrl(address))
         view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
         return view
@@ -115,7 +122,7 @@ def main() -> None:
         sys.exit(1)
 
     app = QApplication(sys.argv)
-    _setup_webengine_storage()
+    _setup_webengine_storage(app)
     screen = app.primaryScreen()
     window_geometry: QRect | None = None
     if screen is not None:
