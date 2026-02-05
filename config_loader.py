@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -32,12 +33,33 @@ def _ensure_fields(data: dict[str, Any], keys: list[str], source: str) -> None:
             raise ConfigError(f"В конфигурации '{source}' нет ключа '{key}'")
 
 
+def _resolve_config_path(path: Path | str) -> Path:
+    candidate = Path(path)
+    if candidate.exists():
+        return candidate
+
+    search_dirs = []
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        search_dirs.append(Path(meipass))
+    exe_parent = Path(sys.executable).resolve().parent
+    search_dirs.append(exe_parent)
+    search_dirs.append(Path.cwd())
+
+    for base in search_dirs:
+        if base == candidate.parent:
+            continue
+        alt = base / candidate.name
+        if alt.exists():
+            return alt
+
+    raise ConfigError(f"Файл конфигурации не найден: {candidate}")
+
+
 def load_config(path: Path | str = "config.json") -> AppConfig:
     """Загружает конфигурацию из JSON-файла и собирает структуры."""
 
-    path = Path(path)
-    if not path.exists():
-        raise ConfigError(f"Файл конфигурации не найден: {path}")
+    path = _resolve_config_path(path)
 
     raw = json.loads(path.read_text(encoding="utf-8"))
     _ensure_fields(raw, ["connection", "mode"], "root")
