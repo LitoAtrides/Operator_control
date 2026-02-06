@@ -24,6 +24,11 @@ from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 from config_loader import AppConfig, ConfigError, load_config
 from url_builder import UrlBuilderError, build_mode_url
 
+APP_DATA_LOCATION = getattr(QStandardPaths, "AppDataLocation", 0)
+FORCE_PERSISTENT_COOKIES = getattr(QWebEngineProfile, "ForcePersistentCookies", 0)
+SIZE_POLICY_EXPANDING = getattr(QSizePolicy, "Expanding", 0)
+SCROLLBAR_AS_NEEDED = getattr(Qt, "ScrollBarAsNeeded", 0)
+
 
 def _resolve_resource_path(relative: str) -> Path:
     base = Path(__file__).resolve().parent
@@ -62,14 +67,14 @@ def _setup_webengine_storage(app: QApplication) -> None:
     global _webengine_profile
     profile = QWebEngineProfile("EQueueBrowser", app)
     base_path = Path(
-        QStandardPaths.writableLocation(QStandardPaths.AppDataLocation)
+        QStandardPaths.writableLocation(APP_DATA_LOCATION)
         or Path(sys.executable).resolve().parent
     )
     storage_path = base_path / "EQueueBrowser" / "webengine"
     storage_path.mkdir(parents=True, exist_ok=True)
     profile.setPersistentStoragePath(str(storage_path))
     profile.setCachePath(str(storage_path / "cache"))
-    profile.setPersistentCookiesPolicy(QWebEngineProfile.ForcePersistentCookies)
+    profile.setPersistentCookiesPolicy(FORCE_PERSISTENT_COOKIES)
     _webengine_profile = profile
     logging.info("WebEngine storage: %s", storage_path)
 
@@ -107,9 +112,9 @@ class OperatorWindow(QMainWindow):
     def _build_orc_panel(self) -> QWidget:
         scroll_area = QScrollArea()
         scroll_area.setWidgetResizable(True)
-        scroll_area.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
-        scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        scroll_area.setSizePolicy(SIZE_POLICY_EXPANDING, SIZE_POLICY_EXPANDING)
+        scroll_area.setHorizontalScrollBarPolicy(SCROLLBAR_AS_NEEDED)
+        scroll_area.setVerticalScrollBarPolicy(SCROLLBAR_AS_NEEDED)
 
         container = QWidget()
         container_layout = QHBoxLayout(container)
@@ -155,7 +160,7 @@ class OperatorWindow(QMainWindow):
         view = QWebEngineView()
         view.setPage(QWebEnginePage(profile, view))
         view.setUrl(QUrl(address))
-        view.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        view.setSizePolicy(SIZE_POLICY_EXPANDING, SIZE_POLICY_EXPANDING)
         return view
 
     def _mode_url(self) -> str:
@@ -169,8 +174,8 @@ def main() -> None:
 
     try:
         config = load_config()
-    except ConfigError as exc:
-        logging.error("Не удалось загрузить конфигурацию: %s", exc)
+    except ConfigError as config_error:
+        logging.error("Не удалось загрузить конфигурацию: %s", config_error)
         sys.exit(1)
 
     app = QApplication(sys.argv)
@@ -199,6 +204,6 @@ def main() -> None:
 if __name__ == "__main__":
     try:
         main()
-    except UrlBuilderError as exc:
-        logging.error("Ошибка формирования URL: %s", exc)
+    except UrlBuilderError as url_error:
+        logging.error("Ошибка формирования URL: %s", url_error)
         sys.exit(1)
