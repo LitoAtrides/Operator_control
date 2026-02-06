@@ -6,7 +6,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl, QRect, QStandardPaths
-from PySide6.QtWebEngineWidgets import QWebEnginePage, QWebEngineView
+from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
     QLabel,
@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from PySide6.QtWebEngineCore import QWebEngineProfile
+from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 
 from config_loader import AppConfig, ConfigError, load_config
 from url_builder import UrlBuilderError, build_mode_url
