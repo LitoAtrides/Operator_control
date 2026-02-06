@@ -46,7 +46,7 @@ def _resolve_resource_path(relative: str) -> Path:
 
 
 def _setup_application_icon(app: QApplication) -> None:
-    icon_path = _resolve_resource_path("assets/EQueueBrowser.ico")
+    icon_path = _resolve_resource_path("assets/mapsoft_icon.ico")
     if not icon_path.exists():
         logging.warning("Иконка приложения не найдена: %s", icon_path)
         return

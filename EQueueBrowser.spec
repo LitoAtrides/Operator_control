@@ -4,7 +4,7 @@ from PyInstaller.utils.hooks import collect_all
 
 qt_binaries, qt_datas, qt_hiddenimports = collect_all('PySide6.QtWebEngineWidgets')
 config_datas = [('config.json', '.')]
-icon_datas = [('assets/EQueueBrowser.ico', 'assets')]
+icon_datas = [('assets/mapsoft_icon.ico', 'assets')]
 
 a = Analysis(
     ['main.py'],
