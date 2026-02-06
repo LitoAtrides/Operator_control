@@ -5,7 +5,7 @@ import logging
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, QRect, QStandardPaths
+from PySide6.QtCore import Qt, QUrl, QRect, QStandardPaths, QSize
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
@@ -55,6 +55,8 @@ class OperatorWindow(QMainWindow):
             self.resize(1280, 720)
         else:
             self.setGeometry(initial_geometry)
+        self._orc_views: list[QWebEngineView] = []
+        self._orc_scroll_area: QScrollArea | None = None
         self._setup_ui()
 
     def _setup_ui(self) -> None:
@@ -83,6 +85,7 @@ class OperatorWindow(QMainWindow):
         container_layout.setSpacing(12)
         container_layout.setContentsMargins(0, 0, 0, 0)
 
+        self._orc_views.clear()
         if not self.config.orc_numbers:
             container_layout.addWidget(
                 QLabel("Нет назначенных пультов для режима ORC.")
@@ -93,10 +96,28 @@ class OperatorWindow(QMainWindow):
             )
             browser.setMinimumHeight(360)
             browser.setMinimumWidth(640)
+            self._orc_views.append(browser)
             container_layout.addWidget(browser, 1)
 
         scroll_area.setWidget(container)
+        self._orc_scroll_area = scroll_area
+        self._fit_orc_browsers()
         return scroll_area
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        if self.config.mode == "orc":
+            self._fit_orc_browsers()
+
+    def _fit_orc_browsers(self) -> None:
+        if not self._orc_views or self._orc_scroll_area is None:
+            return
+        viewport_size = self._orc_scroll_area.viewport().size()
+        if viewport_size.isEmpty():
+            return
+        per_width = max(0, viewport_size.width() // len(self._orc_views))
+        for view in self._orc_views:
+            view.setMinimumSize(QSize(per_width, viewport_size.height()))
 
     def _create_browser(self, address: str) -> QWebEngineView:
         profile = _webengine_profile or QWebEngineProfile.defaultProfile()
