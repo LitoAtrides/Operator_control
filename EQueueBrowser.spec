@@ -4,12 +4,13 @@ from PyInstaller.utils.hooks import collect_all
 
 qt_binaries, qt_datas, qt_hiddenimports = collect_all('PySide6.QtWebEngineWidgets')
 config_datas = [('config.json', '.')]
+icon_datas = [('assets/EQueueBrowser.ico', 'assets')]
 
 a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=qt_binaries,
-    datas=qt_datas + config_datas,
+    datas=qt_datas + config_datas + icon_datas,
     hiddenimports=qt_hiddenimports,
     hookspath=[],
     runtime_hooks=[],

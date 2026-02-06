@@ -6,6 +6,7 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import Qt, QUrl, QRect, QStandardPaths, QSize
+from PySide6.QtGui import QIcon
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
@@ -22,6 +23,36 @@ from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 
 from config_loader import AppConfig, ConfigError, load_config
 from url_builder import UrlBuilderError, build_mode_url
+
+
+def _resolve_resource_path(relative: str) -> Path:
+    base = Path(__file__).resolve().parent
+    candidate = base / relative
+    if candidate.exists():
+        return candidate
+
+    meipass = getattr(sys, "_MEIPASS", None)
+    if meipass:
+        alt = Path(meipass) / relative
+        if alt.exists():
+            return alt
+
+    return candidate
+
+
+def _setup_application_icon(app: QApplication) -> None:
+    icon_path = _resolve_resource_path("assets/EQueueBrowser.ico")
+    if not icon_path.exists():
+        logging.warning("Иконка приложения не найдена: %s", icon_path)
+        return
+
+    icon = QIcon(str(icon_path))
+    if icon.isNull():
+        logging.warning("Не удалось загрузить иконку: %s", icon_path)
+        return
+
+    app.setWindowIcon(icon)
+    logging.info("Установлена иконка приложения: %s", icon_path)
 
 
 _webengine_profile: QWebEngineProfile | None = None
@@ -144,6 +175,7 @@ def main() -> None:
 
     app = QApplication(sys.argv)
     _setup_webengine_storage(app)
+    _setup_application_icon(app)
     screen = app.primaryScreen()
     window_geometry: QRect | None = None
     if screen is not None:
