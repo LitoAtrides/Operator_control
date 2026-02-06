@@ -118,7 +118,7 @@ class OperatorWindow(QMainWindow):
 
         container = QWidget()
         container_layout = QHBoxLayout(container)
-        container_layout.setSpacing(12)
+        container_layout.setSpacing(2)
         container_layout.setContentsMargins(0, 0, 0, 0)
 
         self._orc_views.clear()
