@@ -155,7 +155,8 @@ class OperatorWindow(QMainWindow):
         for view in self._orc_views:
             view.setMinimumSize(QSize(per_width, viewport_size.height()))
 
-    def _create_browser(self, address: str) -> QWebEngineView:
+    @staticmethod
+    def _create_browser(address: str) -> QWebEngineView:
         profile = _webengine_profile or QWebEngineProfile.defaultProfile()
         view = QWebEngineView()
         view.setPage(QWebEnginePage(profile, view))
