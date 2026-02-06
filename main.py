@@ -1,4 +1,4 @@
-"""Главный модуль запуска desktop-приложения для электронного табло."""
+"""Главный модуль запуска desktop-приложения для электронного Пульта оператора."""
 from __future__ import annotations
 
 import logging
@@ -50,7 +50,7 @@ class OperatorWindow(QMainWindow):
     def __init__(self, config: AppConfig, initial_geometry: QRect | None = None) -> None:
         super().__init__()
         self.config = config
-        self.setWindowTitle("Электронная очередь")
+        self.setWindowTitle("Пульт оператора")
         if initial_geometry is None:
             self.resize(1280, 720)
         else:
