@@ -24,6 +24,7 @@ def collect_licenses(destination: Path) -> None:
     if destination.exists():
         shutil.rmtree(destination)
     destination.mkdir(parents=True)
+    shutil.copytree(ROOT / "third_party_licenses", destination, dirs_exist_ok=True)
     for name in ("PySide6", "PySide6_Addons", "PySide6_Essentials", "shiboken6", "pyinstaller"):
         distribution = metadata.distribution(name)
         for item in distribution.files or []:
