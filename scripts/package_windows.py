@@ -82,8 +82,14 @@ def main() -> None:
     report = stage / "smoke-test.json"
     # CI only: offscreen Qt still uses the real packaged Chromium subprocess.
     environment = dict(os.environ, QT_QPA_PLATFORM="offscreen", QTWEBENGINE_CHROMIUM_FLAGS="--disable-gpu")
-    with tempfile.TemporaryDirectory() as cwd:
-        subprocess.run([str(stage / "EQueueBrowser.exe"), "--smoke-test", str(report)],
+    with tempfile.TemporaryDirectory() as temporary:
+        cwd = Path(temporary)
+        launch_dir = cwd / "installed"
+        launch_dir.mkdir()
+        launch_exe = launch_dir / "EQueueBrowser.exe"
+        shutil.copy2(stage / "EQueueBrowser.exe", launch_exe)
+        shutil.copy2(stage / "config.json", launch_dir / "config.json")
+        subprocess.run([str(launch_exe), "--smoke-test", str(report)],
                        cwd=cwd, env=environment, check=True, timeout=90)
     if not json.loads(report.read_text(encoding="utf-8"))["success"]:
         raise RuntimeError("Packaged Chromium smoke test failed")
