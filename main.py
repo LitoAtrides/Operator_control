@@ -24,10 +24,10 @@ from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 from config_loader import AppConfig, ConfigError, load_config
 from url_builder import UrlBuilderError, build_mode_url
 
-APP_DATA_LOCATION = getattr(QStandardPaths, "AppDataLocation", 0)
-FORCE_PERSISTENT_COOKIES = getattr(QWebEngineProfile, "ForcePersistentCookies", 0)
-SIZE_POLICY_EXPANDING = getattr(QSizePolicy, "Expanding", 0)
-SCROLLBAR_AS_NEEDED = getattr(Qt, "ScrollBarAsNeeded", 0)
+APP_DATA_LOCATION = QStandardPaths.StandardLocation.AppDataLocation
+FORCE_PERSISTENT_COOKIES = QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
+SIZE_POLICY_EXPANDING = QSizePolicy.Policy.Expanding
+SCROLLBAR_AS_NEEDED = Qt.ScrollBarPolicy.ScrollBarAsNeeded
 
 
 def _resolve_resource_path(relative: str) -> Path:
@@ -169,6 +169,14 @@ class OperatorWindow(QMainWindow):
 
 
 def main() -> None:
+    import argparse
+    parser = argparse.ArgumentParser(description="Пульт оператора электронной очереди")
+    parser.add_argument("--smoke-test", metavar="REPORT", help="Проверить Chromium и записать JSON-отчёт")
+    args = parser.parse_args()
+    if args.smoke_test:
+        from smoke_test import run_smoke_test
+        sys.exit(run_smoke_test(Path(args.smoke_test), OperatorWindow,
+            _setup_webengine_storage, _setup_application_icon))
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s"
     )

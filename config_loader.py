@@ -35,6 +35,12 @@ def _ensure_fields(data: dict[str, Any], keys: list[str], source: str) -> None:
 
 def _resolve_config_path(path: Path | str) -> Path:
     candidate = Path(path)
+    # The editable file next to a frozen EXE must beat its bundled fallback,
+    # even when a shortcut starts the program from another working directory.
+    if getattr(sys, "frozen", False) and candidate == Path("config.json"):
+        external = Path(sys.executable).resolve().parent / candidate
+        if external.is_file():
+            return external
     if candidate.exists():
         return candidate
 
