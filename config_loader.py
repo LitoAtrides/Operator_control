@@ -25,6 +25,7 @@ class AppConfig:
     mode: str
     segment: str | None
     orc_numbers: list[int]
+    orc_columns: int | None = None
 
 
 def _ensure_fields(data: dict[str, Any], keys: list[str], source: str) -> None:
@@ -83,6 +84,9 @@ def load_config(path: Path | str = "config.json") -> AppConfig:
         raise ConfigError("Некорректные данные соединения") from exc
 
     mode = str(raw["mode"]).lower()
+    orc_columns = raw.get("orcColumns")
+    if orc_columns is not None and (type(orc_columns) is not int or orc_columns < 1):
+        raise ConfigError("orcColumns должен быть положительным целым числом")
     segment = str(raw.get("segment")) if raw.get("segment") is not None else None
     orc_numbers_raw = raw.get("orcNumbers") or []
     if not isinstance(orc_numbers_raw, list):
@@ -100,4 +104,5 @@ def load_config(path: Path | str = "config.json") -> AppConfig:
         mode=mode,
         segment=segment,
         orc_numbers=orc_numbers,
+        orc_columns=orc_columns,
     )

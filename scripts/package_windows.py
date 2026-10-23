@@ -105,8 +105,9 @@ def main() -> None:
                 output.write(file, Path(name) / file.relative_to(stage))
     shutil.copy2(stage / "BUILD_INFO.json", release / "BUILD_INFO.json")
     shutil.copy2(report, release / "smoke-test.json")
+    shutil.copy2(stage / "config.json", release / "config.json")
     sums = []
-    for file in (standalone, archive):
+    for file in (standalone, archive, release / "config.json"):
         with file.open("rb") as stream:
             digest = hashlib.file_digest(stream, "sha256").hexdigest()
         sums.append(f"{digest}  {file.name}\n")

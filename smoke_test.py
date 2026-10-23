@@ -15,7 +15,7 @@ from config_loader import AppConfig, ConnectionConfig, _resolve_config_path, loa
 
 
 def run_smoke_test(report_path: Path, window_class, setup_storage, setup_icon) -> int:
-    """Открыть два пульта на loopback, выполнить JS, проверить конфигурацию EXE."""
+    """Открыть четыре пульта 2×2 на loopback, проверить JS и конфигурацию EXE."""
     report_path = report_path.resolve()
     result = {"success": False, "pages": {}, "errors": []}
     QStandardPaths.setTestModeEnabled(True)
@@ -41,7 +41,8 @@ def run_smoke_test(report_path: Path, window_class, setup_storage, setup_icon) -
     server.daemon_threads = True
     worker = threading.Thread(target=server.serve_forever, daemon=True)
     worker.start()
-    config = AppConfig(ConnectionConfig("http", "127.0.0.1", server.server_port), "orc", None, [11, 12])
+    config = AppConfig(ConnectionConfig("http", "127.0.0.1", server.server_port),
+                       "orc", None, [11, 12, 13, 14], 2)
     window = window_class(config)
     finished = False
 
@@ -52,7 +53,7 @@ def run_smoke_test(report_path: Path, window_class, setup_storage, setup_icon) -
         finished = True
         if error:
             result["errors"].append(error)
-        result["success"] = not result["errors"] and len(result["pages"]) == 2
+        result["success"] = not result["errors"] and len(result["pages"]) == len(config.orc_numbers)
         report_path.parent.mkdir(parents=True, exist_ok=True)
         report_path.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
         window.close()
@@ -65,7 +66,7 @@ def run_smoke_test(report_path: Path, window_class, setup_storage, setup_icon) -
             finish(f"Chromium JS result mismatch for pane {index}: {value!r}")
             return
         result["pages"][str(index)] = value
-        if len(result["pages"]) == 2:
+        if len(result["pages"]) == len(config.orc_numbers):
             finish()
 
     def loaded(ok, index):
@@ -87,8 +88,15 @@ def run_smoke_test(report_path: Path, window_class, setup_storage, setup_icon) -
         result["icon_available"] = not app.windowIcon().isNull()
         if not result["icon_available"]:
             result["errors"].append("Application icon unavailable")
-        if len(window._orc_views) != 2:
-            result["errors"].append("Expected two simultaneous browser panes")
+        if len(window._orc_views) != 4:
+            result["errors"].append("Expected four simultaneous browser panes")
+        grid = window._orc_scroll_area.widget().layout()
+        result["grid"] = {"rows": grid.rowCount(), "columns": grid.columnCount()}
+        if result["grid"] != {"rows": 2, "columns": 2}:
+            result["errors"].append("Expected a 2x2 browser grid")
+        for index, view in enumerate(window._orc_views):
+            if grid.itemAtPosition(*divmod(index, 2)).widget() is not view:
+                result["errors"].append(f"Wrong grid position for pane {index}")
         for index, view in enumerate(window._orc_views):
             view.loadFinished.connect(lambda ok, i=index: loaded(ok, i))
         window.show()

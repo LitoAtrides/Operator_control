@@ -11,6 +11,35 @@ from url_builder import UrlBuilderError, build_mode_url
 
 
 class ConfigurationTests(unittest.TestCase):
+    def test_operator_columns_validation_and_backward_compatibility(self):
+        raw = {"connection": {"protocol": "http", "ip": "host", "port": 8080},
+               "mode": "orc", "orcNumbers": list(range(1, 11))}
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.json"
+            path.write_text(json.dumps(raw), encoding="utf-8")
+            self.assertIsNone(load_config(path).orc_columns)
+            for value in (None, 1, 5, 20):
+                with self.subTest(valid=value):
+                    raw["orcColumns"] = value
+                    path.write_text(json.dumps(raw), encoding="utf-8")
+                    self.assertEqual(load_config(path).orc_columns, value)
+            for value in (0, -1, True, False, 2.5, "5", [], {}):
+                with self.subTest(invalid=value):
+                    raw["orcColumns"] = value
+                    path.write_text(json.dumps(raw), encoding="utf-8")
+                    with self.assertRaises(ConfigError):
+                        load_config(path)
+
+    def test_documented_configuration_ignores_comments(self):
+        path = Path(__file__).resolve().parents[1] / "config.json"
+        raw = json.loads(path.read_text(encoding="utf-8"))
+        self.assertIsInstance(raw.pop("_comments"), dict)
+        documented = load_config(path)
+        with tempfile.TemporaryDirectory() as directory:
+            plain = Path(directory) / "config.json"
+            plain.write_text(json.dumps(raw), encoding="utf-8")
+            self.assertEqual(documented, load_config(plain))
+
     def test_all_modes_and_encoding(self):
         config = AppConfig(ConnectionConfig(" HTTPS:// ", "server", 443), "orc", "a & b", [1, 2])
         self.assertEqual(build_mode_url(config, "display"), "https://server:443/?app=equeuedisplay&platform=all")

@@ -5,13 +5,13 @@ import logging
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, QRect, QStandardPaths, QSize
+from PySide6.QtCore import Qt, QUrl, QRect, QStandardPaths
 from PySide6.QtGui import QIcon
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
     QApplication,
     QLabel,
-    QHBoxLayout,
+    QGridLayout,
     QMainWindow,
     QSizePolicy,
     QScrollArea,
@@ -117,43 +117,31 @@ class OperatorWindow(QMainWindow):
         scroll_area.setVerticalScrollBarPolicy(SCROLLBAR_AS_NEEDED)
 
         container = QWidget()
-        container_layout = QHBoxLayout(container)
+        container_layout = QGridLayout(container)
         container_layout.setSpacing(2)
         container_layout.setContentsMargins(0, 0, 0, 0)
 
         self._orc_views.clear()
         if not self.config.orc_numbers:
             container_layout.addWidget(
-                QLabel("Нет назначенных пультов для режима ORC.")
+                QLabel("Нет назначенных пультов для режима ORC."), 0, 0
             )
-        for orc_number in self.config.orc_numbers:
+        columns = min(self.config.orc_columns or len(self.config.orc_numbers),
+                      len(self.config.orc_numbers)) or 1
+        for index, orc_number in enumerate(self.config.orc_numbers):
             browser = self._create_browser(
                 build_mode_url(self.config, "orc", orc_number)
             )
-            browser.setMinimumHeight(360)
-            browser.setMinimumWidth(640)
+            browser.setMinimumSize(0, 0)
             self._orc_views.append(browser)
-            container_layout.addWidget(browser, 1)
+            row, column = divmod(index, columns)
+            container_layout.addWidget(browser, row, column)
+            container_layout.setRowStretch(row, 1)
+            container_layout.setColumnStretch(column, 1)
 
         scroll_area.setWidget(container)
         self._orc_scroll_area = scroll_area
-        self._fit_orc_browsers()
         return scroll_area
-
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        if self.config.mode == "orc":
-            self._fit_orc_browsers()
-
-    def _fit_orc_browsers(self) -> None:
-        if not self._orc_views or self._orc_scroll_area is None:
-            return
-        viewport_size = self._orc_scroll_area.viewport().size()
-        if viewport_size.isEmpty():
-            return
-        per_width = max(0, viewport_size.width() // len(self._orc_views))
-        for view in self._orc_views:
-            view.setMinimumSize(QSize(per_width, viewport_size.height()))
 
     @staticmethod
     def _create_browser(address: str) -> QWebEngineView:
