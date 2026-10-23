@@ -11,6 +11,13 @@ if HAS_QT:
     from config_loader import AppConfig, ConnectionConfig
     from main import OperatorWindow
 
+    class FakeBrowser(QWidget):
+        def setZoomFactor(self, value):
+            self._zoom = value
+
+        def zoomFactor(self):
+            return self._zoom
+
 
 @unittest.skipUnless(HAS_QT, "Для проверки Qt-разметки нужен PySide6")
 class OperatorLayoutTests(unittest.TestCase):
@@ -20,7 +27,7 @@ class OperatorLayoutTests(unittest.TestCase):
 
     def make_window(self, numbers, columns=None, mode="orc"):
         config = AppConfig(ConnectionConfig("http", "localhost", 8080), mode, "1", numbers, columns)
-        with patch.object(OperatorWindow, "_create_browser", side_effect=lambda address: QWidget()):
+        with patch.object(OperatorWindow, "_create_browser", side_effect=lambda address: FakeBrowser()):
             window = OperatorWindow(config)
         self.addCleanup(window.close)
         self.addCleanup(window.deleteLater)
@@ -34,7 +41,7 @@ class OperatorLayoutTests(unittest.TestCase):
         grid = window._orc_scroll_area.widget().layout()
         self.assertEqual((grid.rowCount(), grid.columnCount()), (2, 5))
         for index, view in enumerate(window._orc_views):
-            self.assertIs(grid.itemAtPosition(*divmod(index, 5)).widget(), view)
+            self.assertIs(grid.itemAtPosition(*divmod(index, 5)).widget().browser, view)
         sizes = [(v.width(), v.height()) for v in window._orc_views]
         self.assertLessEqual(max(w for w, h in sizes) - min(w for w, h in sizes), 1)
         self.assertLessEqual(max(h for w, h in sizes) - min(h for w, h in sizes), 1)

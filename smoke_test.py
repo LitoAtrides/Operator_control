@@ -4,11 +4,12 @@ from __future__ import annotations
 import json
 import sys
 import threading
+import tempfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from PySide6.QtCore import QStandardPaths, QTimer
+from PySide6.QtCore import QSettings, QStandardPaths, QTimer
 from PySide6.QtWidgets import QApplication
 
 from config_loader import AppConfig, ConnectionConfig, _resolve_config_path, load_config
@@ -43,7 +44,10 @@ def run_smoke_test(report_path: Path, window_class, setup_storage, setup_icon) -
     worker.start()
     config = AppConfig(ConnectionConfig("http", "127.0.0.1", server.server_port),
                        "orc", None, [11, 12, 13, 14], 2)
-    window = window_class(config)
+    zoom_directory = tempfile.TemporaryDirectory()
+    zoom_path = str(Path(zoom_directory.name) / "zoom.ini")
+    zoom_settings = QSettings(zoom_path, QSettings.Format.IniFormat)
+    window = window_class(config, zoom_settings=zoom_settings)
     finished = False
 
     def finish(error=None):
@@ -67,7 +71,36 @@ def run_smoke_test(report_path: Path, window_class, setup_storage, setup_icon) -
             return
         result["pages"][str(index)] = value
         if len(result["pages"]) == len(config.orc_numbers):
-            finish()
+            try:
+                verify_zoom()
+            except Exception as exc:
+                finish(f"Zoom verification failed: {exc}")
+            else:
+                finish()
+
+    def verify_zoom():
+        grid = window._orc_scroll_area.widget().layout()
+        first = grid.itemAtPosition(0, 0).widget()
+        second = grid.itemAtPosition(0, 1).widget()
+        first.plus.click()
+        if abs(first.browser.zoomFactor() - 1.1) > 0.001 or second.browser.zoomFactor() != 1:
+            raise RuntimeError("Zoom is not independent for each browser")
+        first.reset.click()
+        if first.browser.zoomFactor() != 1:
+            raise RuntimeError("Zoom reset failed")
+        first.set_zoom(80)
+        second.set_zoom(120)
+        restored_settings = QSettings(zoom_path, QSettings.Format.IniFormat)
+        restored_settings.sync()
+        if restored_settings.status() != QSettings.Status.NoError:
+            raise RuntimeError("Zoom settings could not be read from disk")
+        for panel, expected in ((first, 0.8), (second, 1.2)):
+            panel.set_zoom(100, persist=False)
+            panel.settings = restored_settings
+            panel.reload_zoom()
+            if abs(panel.browser.zoomFactor() - expected) > 0.001:
+                raise RuntimeError("Saved zoom was not restored")
+        result["zoom"] = {"independent": True, "reset": True, "restored": [80, 120]}
 
     def loaded(ok, index):
         if not ok:
@@ -95,7 +128,7 @@ def run_smoke_test(report_path: Path, window_class, setup_storage, setup_icon) -
         if result["grid"] != {"rows": 2, "columns": 2}:
             result["errors"].append("Expected a 2x2 browser grid")
         for index, view in enumerate(window._orc_views):
-            if grid.itemAtPosition(*divmod(index, 2)).widget() is not view:
+            if grid.itemAtPosition(*divmod(index, 2)).widget().browser is not view:
                 result["errors"].append(f"Wrong grid position for pane {index}")
         for index, view in enumerate(window._orc_views):
             view.loadFinished.connect(lambda ok, i=index: loaded(ok, i))
@@ -107,3 +140,4 @@ def run_smoke_test(report_path: Path, window_class, setup_storage, setup_icon) -
         server.shutdown()
         server.server_close()
         worker.join(timeout=5)
+        zoom_directory.cleanup()

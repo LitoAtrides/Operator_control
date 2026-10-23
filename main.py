@@ -5,7 +5,7 @@ import logging
 import sys
 from pathlib import Path
 
-from PySide6.QtCore import Qt, QUrl, QRect, QStandardPaths
+from PySide6.QtCore import Qt, QUrl, QRect, QStandardPaths, QSettings
 from PySide6.QtGui import QIcon
 from PySide6.QtWebEngineWidgets import QWebEngineView
 from PySide6.QtWidgets import (
@@ -23,6 +23,7 @@ from PySide6.QtWebEngineCore import QWebEnginePage, QWebEngineProfile
 
 from config_loader import AppConfig, ConfigError, load_config
 from url_builder import UrlBuilderError, build_mode_url
+from operator_panel import OperatorPanel, zoom_key
 
 APP_DATA_LOCATION = QStandardPaths.StandardLocation.AppDataLocation
 FORCE_PERSISTENT_COOKIES = QWebEngineProfile.PersistentCookiesPolicy.ForcePersistentCookies
@@ -83,9 +84,12 @@ def _setup_webengine_storage(app: QApplication) -> None:
 class OperatorWindow(QMainWindow):
     """Основное окно приложения, устанавливающее нужную разметку."""
 
-    def __init__(self, config: AppConfig, initial_geometry: QRect | None = None) -> None:
+    def __init__(self, config: AppConfig, initial_geometry: QRect | None = None,
+                 *, zoom_settings: QSettings | None = None) -> None:
         super().__init__()
         self.config = config
+        self._zoom_settings = zoom_settings if zoom_settings is not None else QSettings(
+            QSettings.Format.IniFormat, QSettings.Scope.UserScope, "MapSoft", "EQueueBrowser")
         self.setWindowTitle("Пульт оператора")
         if initial_geometry is None:
             self.resize(1280, 720)
@@ -135,7 +139,9 @@ class OperatorWindow(QMainWindow):
             browser.setMinimumSize(0, 0)
             self._orc_views.append(browser)
             row, column = divmod(index, columns)
-            container_layout.addWidget(browser, row, column)
+            panel = OperatorPanel(browser, orc_number, zoom_key(self.config, orc_number), self._zoom_settings)
+            panel.save_failed.connect(lambda message: self.statusBar().showMessage(message, 10000))
+            container_layout.addWidget(panel, row, column)
             container_layout.setRowStretch(row, 1)
             container_layout.setColumnStretch(column, 1)
 
